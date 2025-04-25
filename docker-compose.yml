@@ -5,13 +5,15 @@ services:
     build: .
     ports:
       - "3000:3000"
-    depends_on:
-      - mongo
     environment:
-      MONGO_URI: mongodb://admin:1234567890@localhost:27017/express_ts_api?authSource=admin
-    volumes:
-      - .:/app
-      - /app/node_modules
+      MONGO_URI: mongodb://admin:1234567890@mongo:27017/express_ts_api?authSource=admin
+    depends_on:
+      mongo-init-seed:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_started
+    networks:
+      main: {}
 
   mongo:
     image: mongo:6
@@ -20,6 +22,41 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 1234567890
+      MONGO_INITDB_DATABASE: express_ts_api
+    networks:
+      main: {}
+
+  mongo-init-wait:
+    image: atkrad/wait4x
+    command:
+      - --interval
+      - 5s
+      - --timeout
+      - 2m
+      - tcp
+      - mongo:27017
+    networks:
+      main: {}
+    restart: "no"
+
+  mongo-init-seed:
+    build: .
+    environment:
+      MONGO_URI: mongodb://admin:1234567890@mongo:27017/express_ts_api?authSource=admin
+    command:
+      - dist/scripts/seedPosts.js
+    depends_on:
+      mongo-init-wait:
+        condition: service_completed_successfully
+    networks:
+      main: {}
+    restart: "no"
 
 volumes:
   mongo-data:
+
+networks:
+  main:
