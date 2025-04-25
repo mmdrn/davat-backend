@@ -1,21 +1,19 @@
-export interface IPostDTO {
+export interface IPost {
   id: string;
   title: string;
   content: string;
   author: string;
   description: string;
   likes: string[];
-  comments: ICommentDTO[];
   commentsCount: number;
 }
 
-export interface ICommentDTO {
+export interface IComment {
   id: string;
   postId: string;
-  parentCommentId: string | null;
-  authorId: string;
+  parentCommentId?: string;
+  author: string;
   content: string;
-  likes: string[];
   createdAt: Date;
-  replies: ICommentDTO[];
+  likes: string[];
 }

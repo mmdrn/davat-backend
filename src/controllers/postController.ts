@@ -11,6 +11,9 @@ const postService = new PostService(
   new CommentRepository()
 );
 
+/**
+ * Retrieves all posts
+ */
 export const getPostById = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -19,13 +22,12 @@ export const getPostById = async (req: Request, res: Response) => {
       res.status(404).json({ message: "Post not found" });
       return;
     }
-    const postDetails: IPostDTO = {
-      id: post._id,
+    const postDetails: Omit<IPostDTO, "comments" | "commentsCount"> = {
+      id: post.id,
       title: post.title,
       content: post.content,
       author: post.author,
       description: post.description,
-      comments: [],
       likes: post.likes.map((like) => like.toString()),
     };
     res.status(200).json(postDetails);
@@ -33,37 +35,24 @@ export const getPostById = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to fetch post", error });
   }
 };
+
 /**
  * Retrieves all posts with their associated details
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {Promise<void>} - Returns array of posts with details or error response
  */
 export const getPosts = async (req: Request, res: Response) => {
   try {
     // Fetch all posts with their associated details
-    const posts = await postService.getPostsWithDetails();
+    const posts = await postService.getPosts();
 
-    const postsWithDetails: IPostDTO[] = posts.map(
-      (post): IPostDTO => ({
-        id: post.post._id,
-        title: post.post.title,
-        content: post.post.content,
-        author: post.post.author,
-        likes: post.post.likes,
-        description: post.post.description,
-        comments: post.comments.map(
-          (comment: any): ICommentDTO => ({
-            id: comment._id,
-            postId: comment.postId,
-            parentCommentId: comment.parentCommentId,
-            authorId: comment.author,
-            content: comment.content,
-            likes: comment.likes,
-            createdAt: comment.createdAt,
-            replies: [],
-          })
-        ),
+    const postsWithDetails: Omit<IPostDTO, "comments">[] = posts.map(
+      (post): Omit<IPostDTO, "comments"> => ({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        author: post.author,
+        likes: post.likes,
+        description: post.description,
+        commentsCount: post.commentsCount,
       })
     );
 
@@ -78,9 +67,6 @@ export const getPosts = async (req: Request, res: Response) => {
 
 /**
  * Toggles the like status of a post for a specific user
- * @param {Request} req - Express request object containing post ID in params and user ID in body
- * @param {Response} res - Express response object
- * @returns {Promise<void>} - Returns the updated post object or error response
  */
 export const toggleLikePost = async (req: Request, res: Response) => {
   try {
@@ -104,9 +90,6 @@ export const toggleLikePost = async (req: Request, res: Response) => {
 
 /**
  * Retrieves all threaded comments for a specific post
- * @param {Request} req - Express request object containing post ID in params
- * @param {Response} res - Express response object
- * @returns {Promise<void>} - Returns array of threaded comments or error response
  */
 export const getCommentsForPost = async (req: Request, res: Response) => {
   try {
@@ -114,9 +97,10 @@ export const getCommentsForPost = async (req: Request, res: Response) => {
     const { id } = req.params;
     // Fetch threaded comments for the post
     const comments = await commentService.getThreadedComments(id);
+
     const commentsWithDetails: ICommentDTO[] = comments.map((comment) => {
       return {
-        id: comment._id,
+        id: comment.id,
         postId: comment.postId,
         parentCommentId: comment.parentCommentId,
         authorId: comment.author,
@@ -124,7 +108,7 @@ export const getCommentsForPost = async (req: Request, res: Response) => {
         likes: comment.likes,
         createdAt: comment.createdAt,
         replies: comment.replies.map((reply: any) => ({
-          id: reply._id,
+          id: reply.id,
           postId: reply.postId,
           parentCommentId: reply.parentCommentId,
           authorId: reply.author,
@@ -134,6 +118,7 @@ export const getCommentsForPost = async (req: Request, res: Response) => {
         })),
       };
     });
+
     // Return comments array
     res.status(200).json(commentsWithDetails);
   } catch (error) {
@@ -143,9 +128,6 @@ export const getCommentsForPost = async (req: Request, res: Response) => {
 
 /**
  * Creates a new comment for a specific post
- * @param {Request} req - Express request object containing post ID in params and comment details in body
- * @param {Response} res - Express response object
- * @returns {Promise<void>} - Returns the created comment object or error response
  */
 export const createComment = async (req: Request, res: Response) => {
   try {
@@ -168,6 +150,9 @@ export const createComment = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Toggles the like status of a comment for a specific user
+ */
 export const toggleLikeComment = async (req: Request, res: Response) => {
   try {
     // Extract post ID from request parameters

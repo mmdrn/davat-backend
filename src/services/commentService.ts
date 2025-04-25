@@ -1,7 +1,7 @@
 import { ICommentService } from "./interfaces/ICommentService";
 import { ICommentRepository } from "../repositories/interfaces/ICommentRepository";
 import { Types } from "mongoose";
-import { IComment } from "../models/commentModel";
+import { IComment } from "./types";
 
 export class CommentService implements ICommentService {
   constructor(private commentRepo: ICommentRepository) {}
@@ -10,10 +10,19 @@ export class CommentService implements ICommentService {
     commentId: string,
     userId: string
   ): Promise<IComment | null> {
-    return await this.commentRepo.toggleLike(
-      new Types.ObjectId(commentId),
-      new Types.ObjectId(userId)
-    );
+    const updatedComment = await this.commentRepo.toggleLike(commentId, userId);
+
+    if (!updatedComment) return null;
+
+    return {
+      id: updatedComment.id,
+      postId: updatedComment.postId,
+      parentCommentId: updatedComment.parentCommentId,
+      author: updatedComment.author,
+      content: updatedComment.content,
+      createdAt: updatedComment.createdAt,
+      likes: updatedComment.likes,
+    };
   }
 
   async addComment({
@@ -28,30 +37,25 @@ export class CommentService implements ICommentService {
     content: string;
   }) {
     const comment = await this.commentRepo.addComment({
-      postId: new Types.ObjectId(postId),
-      parentCommentId: parentCommentId
-        ? new Types.ObjectId(parentCommentId)
-        : undefined,
+      postId: postId,
+      parentCommentId: parentCommentId ? parentCommentId : undefined,
       author,
       content,
-      createdAt: new Date(),
     });
     return comment;
   }
 
   async getThreadedComments(postId: string) {
-    const comments = await this.commentRepo.getCommentsByPost(
-      new Types.ObjectId(postId)
-    );
+    const comments = await this.commentRepo.getCommentsByPost(postId);
 
     // Basic nesting by parentCommentId
     const map = new Map<string, any>();
     const roots: any[] = [];
 
     for (const comment of comments) {
-      const id = (comment as any)._id.toString();
+      const id = comment.id.toString();
       const commentObj = {
-        _id: comment._id,
+        id: comment.id,
         postId: comment.postId,
         parentCommentId: comment.parentCommentId,
         author: comment.author,
@@ -64,7 +68,7 @@ export class CommentService implements ICommentService {
 
     for (const comment of comments) {
       const parentId = (comment as any).parentCommentId?.toString();
-      const node = map.get((comment as any)._id.toString());
+      const node = map.get(comment.id.toString());
 
       if (parentId && map.has(parentId)) {
         map.get(parentId).replies.push(node);

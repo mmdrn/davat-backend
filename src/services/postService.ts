@@ -1,8 +1,8 @@
 import { IPostService } from "./interfaces/IPostService";
 import { IPostRepository } from "../repositories/interfaces/IPostRepository";
 import { Types } from "mongoose";
-import { IPost } from "../models/postModel";
 import { ICommentRepository } from "../repositories/interfaces/ICommentRepository";
+import { IPost } from "./types";
 
 export class PostService implements IPostService {
   constructor(
@@ -10,29 +10,50 @@ export class PostService implements IPostService {
     private commentRepo: ICommentRepository
   ) {}
   async getPostById(postId: string): Promise<IPost | null> {
-    return await this.postRepo.getPostById(new Types.ObjectId(postId));
+    const post = await this.postRepo.getPostById(postId);
+
+    if (!post) return null;
+
+    const comments = await this.commentRepo.getCommentsByPost(post.id);
+
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      description: post.description,
+      likes: post.likes,
+      commentsCount: comments.length,
+    };
   }
 
-  async toggleLike(postId: string, userId: string): Promise<IPost | null> {
-    return await this.postRepo.toggleLike(
-      new Types.ObjectId(postId),
-      new Types.ObjectId(userId)
-    );
+  async toggleLike(
+    postId: string,
+    userId: string
+  ): Promise<Omit<IPost, "commentsCount"> | null> {
+    const post = await this.postRepo.toggleLike(postId, userId);
+
+    if (!post) return null;
+
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      description: post.description,
+      likes: post.likes,
+    };
   }
 
-  async getPostsWithDetails(): Promise<any[]> {
-    const posts = await this.postRepo.getAllPosts(); // Assume this method fetches all posts from the repository
-    // Fetch comments for each post
+  async getPosts(): Promise<IPost[]> {
+    const posts = await this.postRepo.getAllPosts();
     const postsWithDetails = await Promise.all(
       posts.map(async (post) => {
-        // @ts-ignore
-        const comments = await this.commentRepo.getCommentsByPost(post._id);
-        const likesCount = post.likes.length;
+        const comments = await this.commentRepo.getCommentsByPost(post.id);
 
         return {
-          post,
-          likesCount,
-          comments,
+          ...post,
+          commentsCount: comments.length,
         };
       })
     );

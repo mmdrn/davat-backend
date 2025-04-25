@@ -1,32 +1,61 @@
-import Post, { IPost } from "../models/postModel";
+import Post from "../models/postModel";
 import { IPostRepository } from "./interfaces/IPostRepository";
 import { Types } from "mongoose";
+import { IPost } from "./types";
 
 export class PostRepository implements IPostRepository {
-  async getPostById(postId: Types.ObjectId): Promise<IPost | null> {
-    const post = await Post.findById(postId);
+  async getPostById(postId: string): Promise<IPost | null> {
+    const post = await Post.findById(new Types.ObjectId(postId));
     if (!post) return null;
 
-    return post;
+    return {
+      id: post._id.toString(),
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      description: post.description,
+      likes: post.likes.map((id) => id.toString()),
+    };
   }
 
-  async toggleLike(postId: Types.ObjectId, userId: Types.ObjectId) {
+  async toggleLike(postId: string, userId: string) {
     const post = await Post.findById(postId);
     if (!post) return null;
 
-    const alreadyLiked = post.likes.some((id) => id.equals(userId));
+    const alreadyLiked = post.likes.some((id) =>
+      id.equals(new Types.ObjectId(userId))
+    );
 
     if (alreadyLiked) {
-      post.likes = post.likes.filter((id) => !id.equals(userId));
+      post.likes = post.likes.filter(
+        (id) => !id.equals(new Types.ObjectId(userId))
+      );
     } else {
-      post.likes.push(userId);
+      post.likes.push(new Types.ObjectId(userId));
     }
 
-    return await post.save();
+    const savedPost = await post.save();
+
+    return {
+      id: savedPost._id.toString(),
+      title: savedPost.title,
+      content: savedPost.content,
+      author: savedPost.author,
+      description: savedPost.description,
+      likes: savedPost.likes.map((id) => id.toString()),
+    };
   }
 
-  // New method to get all posts
   async getAllPosts(): Promise<IPost[]> {
-    return await Post.find().lean();
+    const posts = await Post.find().lean();
+
+    return posts.map((post) => ({
+      id: post._id.toString(),
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      description: post.description,
+      likes: post.likes.map((id) => id.toString()),
+    }));
   }
 }
