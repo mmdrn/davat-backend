@@ -57,3 +57,4 @@ pm2.log
 
 # ESLint cache
 .eslintcache
+.qodo

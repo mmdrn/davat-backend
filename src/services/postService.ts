@@ -9,6 +9,9 @@ export class PostService implements IPostService {
     private postRepo: IPostRepository,
     private commentRepo: ICommentRepository
   ) {}
+  async getPostById(postId: string): Promise<IPost | null> {
+    return await this.postRepo.getPostById(new Types.ObjectId(postId));
+  }
 
   async toggleLike(postId: string, userId: string): Promise<IPost | null> {
     return await this.postRepo.toggleLike(

@@ -2,14 +2,18 @@ import { Router } from "express";
 import {
   createComment,
   getCommentsForPost,
+  getPostById,
   getPosts,
-  toggleLike,
+  toggleLikeComment,
+  toggleLikePost,
 } from "../controllers/postController";
 
 const router = Router();
 
 router.get("/posts", getPosts);
-router.post("/posts/:id/like", toggleLike);
+router.get("/posts/:id", getPostById);
+router.post("/posts/:id/like", toggleLikePost);
+router.post("/posts/:id/comments/:commentId/like", toggleLikeComment);
 router.post("/posts/:id/comments", createComment);
 router.get("/posts/:id/comments", getCommentsForPost);
 

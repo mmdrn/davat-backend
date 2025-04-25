@@ -1,9 +1,20 @@
 import { ICommentService } from "./interfaces/ICommentService";
 import { ICommentRepository } from "../repositories/interfaces/ICommentRepository";
 import { Types } from "mongoose";
+import { IComment } from "../models/commentModel";
 
 export class CommentService implements ICommentService {
   constructor(private commentRepo: ICommentRepository) {}
+
+  async toggleLike(
+    commentId: string,
+    userId: string
+  ): Promise<IComment | null> {
+    return await this.commentRepo.toggleLike(
+      new Types.ObjectId(commentId),
+      new Types.ObjectId(userId)
+    );
+  }
 
   async addComment({
     postId,
@@ -46,6 +57,7 @@ export class CommentService implements ICommentService {
         author: comment.author,
         content: comment.content,
         createdAt: comment.createdAt,
+        likes: comment.likes,
       };
       map.set(id, { ...commentObj, replies: [] });
     }

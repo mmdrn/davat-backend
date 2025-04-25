@@ -3,6 +3,13 @@ import { IPostRepository } from "./interfaces/IPostRepository";
 import { Types } from "mongoose";
 
 export class PostRepository implements IPostRepository {
+  async getPostById(postId: Types.ObjectId): Promise<IPost | null> {
+    const post = await Post.findById(postId);
+    if (!post) return null;
+
+    return post;
+  }
+
   async toggleLike(postId: Types.ObjectId, userId: Types.ObjectId) {
     const post = await Post.findById(postId);
     if (!post) return null;

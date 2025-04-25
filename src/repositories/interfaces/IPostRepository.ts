@@ -8,4 +8,6 @@ export interface IPostRepository {
   ): Promise<IPost | null>;
 
   getAllPosts(): Promise<IPost[]>;
+
+  getPostById(postId: Types.ObjectId): Promise<IPost | null>;
 }
